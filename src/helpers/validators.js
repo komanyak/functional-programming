@@ -13,38 +13,85 @@
  * Если какие либо функции написаны руками (без использования библиотек) это не является ошибкой
  */
 
-// 1. Красная звезда, зеленый квадрат, все остальные белые.
-export const validateFieldN1 = ({star, square, triangle, circle}) => {
-    if (triangle !== 'white' || circle !== 'white') {
-        return false;
-    }
+import {
+  allPass,
+  anyPass,
+  complement,
+  countBy,
+  equals,
+  filter,
+  identity,
+  length,
+  pipe,
+  prop,
+  propEq,
+  values,
+  converge,
+  all,
+  any,
+  both,
+} from "ramda";
 
-    return star === 'red' && square === 'green';
-};
+const getColors = values;
+const countColor = (color) => pipe(getColors, filter(equals(color)), length);
+const hasColor = (shape, color) => propEq(shape, color);
+const hasExactCount = (count, color) => pipe(countColor(color), equals(count));
+const hasMinCount = (min, color) => pipe(countColor(color), (n) => n >= min);
+const allSameColor = (color) => pipe(getColors, all(equals(color)));
+const notWhite = complement(equals("white"));
+const notRedOrWhite = complement(anyPass([equals("red"), equals("white")]));
 
-// 2. Как минимум две фигуры зеленые.
-export const validateFieldN2 = () => false;
+// 1. Красная звезда, зеленый квадрат, все остальные белые
+export const validateFieldN1 = allPass([
+  hasColor("star", "red"),
+  hasColor("square", "green"),
+  hasColor("triangle", "white"),
+  hasColor("circle", "white"),
+]);
 
-// 3. Количество красных фигур равно кол-ву синих.
-export const validateFieldN3 = () => false;
+// 2. Как минимум две фигуры зеленые
+export const validateFieldN2 = hasMinCount(2, "green");
 
-// 4. Синий круг, красная звезда, оранжевый квадрат треугольник любого цвета
-export const validateFieldN4 = () => false;
+// 3. Количество красных фигур равно кол-ву синих
+export const validateFieldN3 = converge(equals, [
+  countColor("red"),
+  countColor("blue"),
+]);
 
-// 5. Три фигуры одного любого цвета кроме белого (четыре фигуры одного цвета – это тоже true).
-export const validateFieldN5 = () => false;
+// 4. Синий круг, красная звезда, оранжевый квадрат
+export const validateFieldN4 = allPass([
+  hasColor("circle", "blue"),
+  hasColor("star", "red"),
+  hasColor("square", "orange"),
+]);
 
-// 6. Ровно две зеленые фигуры (одна из зелёных – это треугольник), плюс одна красная. Четвёртая оставшаяся любого доступного цвета, но не нарушающая первые два условия
-export const validateFieldN6 = () => false;
+// 5. Три+ фигуры одного цвета (кроме белого)
+export const validateFieldN5 = pipe(
+  getColors,
+  filter(notWhite),
+  countBy(identity),
+  values,
+  any((count) => count >= 3)
+);
 
-// 7. Все фигуры оранжевые.
-export const validateFieldN7 = () => false;
+// 6. Ровно две зеленые фигуры (треугольник - зеленый), одна красная
+export const validateFieldN6 = allPass([
+  hasExactCount(2, "green"),
+  hasColor("triangle", "green"),
+  hasExactCount(1, "red"),
+]);
 
-// 8. Не красная и не белая звезда, остальные – любого цвета.
-export const validateFieldN8 = () => false;
+// 7. Все фигуры оранжевые
+export const validateFieldN7 = allSameColor("orange");
 
-// 9. Все фигуры зеленые.
-export const validateFieldN9 = () => false;
+// 8. Не красная и не белая звезда
+export const validateFieldN8 = pipe(prop("star"), notRedOrWhite);
 
-// 10. Треугольник и квадрат одного цвета (не белого), остальные – любого цвета
-export const validateFieldN10 = () => false;
+// 9. Все фигуры зеленые
+export const validateFieldN9 = allSameColor("green");
+
+// 10. Треугольник и квадрат одного цвета (не белого)
+export const validateFieldN10 = both(
+  converge(equals, [prop("triangle"), prop("square")]),
+  pipe(prop("triangle"), notWhite)
+);
